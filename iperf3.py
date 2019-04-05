@@ -81,9 +81,10 @@ for item in list(modulations.items()):
                     # print m.groups()[0]
                     goodputs.append(float(m.groups()[0]))
 
-        goodputs.sort()
+        # goodputs.sort()
 
-        print goodputs
+        avg_goodput = round(sum(goodputs) / len(goodputs), 1)
+        print avg_goodput
 
         server.sendcontrol('a')
         server.send('k')
