@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import pexpect
+import pexpect, time
 import re
 
 # Serial ports for devices under test
@@ -59,6 +59,8 @@ for item in list(modulations.items()):
             server.expect_exact('pi@raspberrypi:~$ ')
             server.sendline(iperf_server_cmd)
 
+            # delay between starting server and client
+            time.sleep(0.5)
             # Start Iperf3 client and wait for it to finish
 
             # Set command prompt to something more specific
