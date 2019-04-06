@@ -12,8 +12,12 @@ server_port = '/dev/ttyUSB2'
 # modulations = {'FSK150': 8, 'OFDM600': 46}
 modulations = {'OFDM600': 46}
 
-# Client side bandwith in Kbits/sec
-bandwidths = [10, 15, 20, 25, 30, 35, 40, 50, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400]
+# IPERF Settings
+client_ip_addr  = 'bbbb::1' # CLient IP Addr
+duration        = '5'
+report_interval = '1'
+# Client side bandwidth in Kbits/sec
+bandwidths      = [10, 15, 20, 25, 30, 35, 40, 50, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400]
 
 for item in list(modulations.items()):
     # print(item[0])
@@ -48,7 +52,7 @@ for item in list(modulations.items()):
             goodputs = []
 
             iperf_server_cmd = 'iperf3 -1 -s'
-            iperf_client_cmd = 'iperf3 -b ' + str(bandwidth) + 'K -c 3333::1 -l ' + str(payload_len) + ' -t 10 -u'
+            iperf_client_cmd = 'iperf3 -b ' + str(bandwidth) + 'K -c ' + client_ip_addr + ' -l ' + str(payload_len) + ' -t ' + duration + ' -u'
         
             # print(iperf_server_cmd)
             print(iperf_client_cmd)
