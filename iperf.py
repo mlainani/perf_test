@@ -1,9 +1,17 @@
 #!/usr/bin/env python
 
+from datetime import datetime
 from pexpect import pxssh
+import csv
 import pexpect
 import re
 import time
+
+payload_lengths = [64, 128, 256, 1024]
+# payload_lengths = [128, 256]
+
+# Dictionnary keys are the above payload lengths
+goodputs = {}
 
 # Serial ports for devices under test
 dut_ports = ['/dev/ttyUSB0', '/dev/ttyUSB1']
@@ -11,29 +19,34 @@ dut_ports = ['/dev/ttyUSB0', '/dev/ttyUSB1']
 # Serial port for server (RPi)
 server_port = '/dev/ttyUSB2'
 
-# modulations = {'FSK150': 8, 'OFDM600': 46}
-modulations = {'OFDM600': 46}
+# Tested modulations with associated PIB value and list of bandwidths in Kbits/sec
+modulations = {'FSK150': (8, [5, 10, 15, 20, 25, 30, 35, 40, 50, 55, 60, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400]),
+               'OFDM600': (46, [10, 15, 20, 25, 30, 35, 40, 50, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400])}
 
-# Client side bandwith in Kbits/sec
-bandwidths = [10, 15, 20, 25, 30, 35, 40, 50, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400]
+# modulations = {'OFDM600': (46, [20, 30])}
 
 for item in list(modulations.items()):
-    # print(item[0])
-    # print(item[1])
+    modulation_name = item[0];
+    modulation_pib_value = item[1][0];
+    modulation_bandwidths = item[1][1]
 
-    # cmd  = 'pib -sn .rf_mac.static_config.pkt_mgr.forceTxModulation -v ' + str(item[1])
+    print(modulation_name)
+    print(modulation_pib_value)
+    print(modulation_bandwidths)
+
+    # cmd  = 'pib -sn .rf_mac.static_config.pkt_mgr.forceTxModulation -v ' + str(modulation_pib_value)
 
     # print(cmd)
 
+    # continue
+    # exit(0)
+    
     for port in dut_ports:
         # Connect to the Device Under Test and set RF modulation
-        # cmd = 'screen ' + port + ' 115200'
-        # print(cmd)
         dut = pexpect.spawn('screen ' + port + ' 115200', timeout=60)
         dut.sendline()
-        # dut.sendcontrol('c')
         dut.expect_exact('# ')
-        # dut.sendline('pib -sn .rf_mac.static_config.pkt_mgr.forceTxModulation -v ' + str(item[1]))
+        # dut.sendline('pib -sn .rf_mac.static_config.pkt_mgr.forceTxModulation -v ' + str(modulation_pib_value))
         dut.sendline('date > /root/foobar')
         dut.expect_exact('# ')
 
@@ -44,12 +57,11 @@ for item in list(modulations.items()):
 
         print('Set RF modulation to ' +  item[0] + ' for DUT on serial port ' + port)
 
-    for payload_len in [64, 128, 256, 1024]:
-        for bandwidth in bandwidths:
+    for payload_len in payload_lengths:
+        goodputs[payload_len] = []
+        for bandwidth in modulation_bandwidths:
 
-            goodputs = []
-
-            iperf_server_cmd = 'iperf -s -u -U -V'
+            iperf_server_cmd = 'iperf -s -u -V'
             # iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c 3333::1 -l ' + str(payload_len) + ' -t 10 -u -V'
             iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c 3333::1 -l ' + str(payload_len) + ' -t 5 -u -V'
 
@@ -78,7 +90,7 @@ for item in list(modulations.items()):
                 print 'Client has finished\n'
                 client.kill(1)
 
-            time.sleep(10)
+            time.sleep(20)
 
             server.sendcontrol('c')
             server.sendcontrol('c')
@@ -90,8 +102,9 @@ for item in list(modulations.items()):
                 print line
                 m = re.search(r'\s(\d+|\d+\.\d+)\sKbits/sec', line)
                 if m is not None:
-                    print m.groups()[0]
-                    # goodputs.append(float(m.groups()[0]))
+                    # print m.groups()[0]
+                    goodputs[payload_len].append(float(m.groups()[0]))
+                    print goodputs[payload_len]
 
             # goodputs.sort()
 
@@ -103,3 +116,16 @@ for item in list(modulations.items()):
             server.send('k')
             server.send('y')
             server.kill(1)
+
+    # Create CSV file for the current modulation
+    fmt = '%b%d-%H-%M'
+    now = datetime.now()
+    csv_filename = modulation_name + '_' + now.strftime(fmt) + '.csv'
+    with open(csv_filename, 'w') as f:
+        writer = csv.writer(f, quoting=csv.QUOTE_NONE)
+        writer.writerow(['Input Data Rate (Kbps)', 'Goodput (kbps) for different Packet Sizes', None, None, None])
+        writer.writerow([None, '64B', '128B', '256B', '1024B'])
+        rows = zip(goodputs[64], goodputs[128], goodputs[256], goodputs[1024])
+        # rows = zip(goodputs[128], goodputs[256])
+        for row in rows:
+            writer.writerow(row)
