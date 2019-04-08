@@ -4,10 +4,10 @@ import pexpect, time
 import re
 
 # Serial ports for devices under test
-dut_ports = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+dut_ports = ['/dev/ttyUSB1', '/dev/ttyUSB2']
 
 # Serial port for server (RPi)
-server_port = '/dev/ttyUSB2'
+server_port = '/dev/ttyUSB0'
 
 # modulations = {'FSK150': 8, 'OFDM600': 46}
 modulations = {'OFDM600': 46}
@@ -35,8 +35,9 @@ for item in list(modulations.items()):
         dut.sendline()
         # dut.sendcontrol('c')
         dut.expect_exact('# ')
-        # dut.sendline('pib -sn .rf_mac.static_config.pkt_mgr.forceTxModulation -v ' + str(item[1]))
-        dut.sendline('date > /root/foobar')
+        # set the modulation
+        dut.sendline('pib -sn .rf_mac.static_config.pkt_mgr.forceTxModulation -v ' + str(item[1]))
+        # dut.sendline('date > /root/foobar')
         dut.expect_exact('# ')
 
         dut.sendcontrol('a')
@@ -46,7 +47,8 @@ for item in list(modulations.items()):
 
         print('Set RF modulation to ' +  item[0] + ' for DUT on serial port ' + port)
 
-    for payload_len in [64, 128, 256, 1024]:
+    # for payload_len in [64, 128, 256, 1024]:
+    for payload_len in [1024]:
         for bandwidth in bandwidths:
 
             goodputs = []
@@ -58,11 +60,13 @@ for item in list(modulations.items()):
             print(iperf_client_cmd)
 
             # Start Iperf3 server
-            server = pexpect.spawn('screen ' + server_port + ' 115200', timeout=60)
-            server.sendline()
-            server.expect_exact('pi@raspberrypi:~$ ')
-            server.sendline(iperf_server_cmd)
-
+            # server = pexpect.spawn('screen ' + server_port + ' 115200', timeout=60)
+            # server.sendline()
+            # server.expect_exact('pi@raspberrypi:~$ ')
+            # server.sendline(iperf_server_cmd)
+            server = pxssh.pxssh()
+            server.login('10.0.30.2', 'pi')
+            server.sendline(iperf_server_cmd)   # run a command
             # delay between starting server and client
             time.sleep(0.5)
             # Start Iperf3 client and wait for it to finish
@@ -79,7 +83,8 @@ for item in list(modulations.items()):
                 client.kill(1)
 
             # server.sendline()
-            server.expect_exact('pi@raspberrypi:~$ ')
+            # server.expect_exact('pi@raspberrypi:~$ ')
+            server.prompt()             # match the prompt
             if ret == 0:
                 lines = server.before.split('\n')
             for line in lines:
@@ -94,7 +99,8 @@ for item in list(modulations.items()):
             avg_goodput = round(sum(goodputs) / len(goodputs), 1)
             print avg_goodput
 
-            server.sendcontrol('a')
-            server.send('k')
-            server.send('y')
-            server.kill(1)
+            server.logout
+            # server.sendcontrol('a')
+            # server.send('k')
+            # server.send('y')
+            # server.kill(1)
