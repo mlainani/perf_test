@@ -119,11 +119,11 @@ for item in list(modulations.items()):
             # avg_goodput = round(sum(goodputs) / len(goodputs), 1)
             # print avg_goodput
 
-
-            server.sendcontrol('a')
-            server.send('k')
-            server.send('y')
-            server.kill(1)
+            server.logout
+            # server.sendcontrol('a')
+            # server.send('k')
+            # server.send('y')
+            # server.kill(1)
 
     # Create CSV file for the current modulation
     fmt = '%b%d-%H-%M'
