@@ -7,8 +7,8 @@ import pexpect
 import re
 import time
 
-# payload_lengths = [64, 128, 256, 1024]
-payload_lengths = [256, 1024]
+payload_lengths = [64, 128, 256, 1024]
+# payload_lengths = [256, 1024]
 
 # Dictionnary keys are the above payload lengths
 goodputs = {}
@@ -28,10 +28,10 @@ duration        = '5'
 report_interval = '1'
 
 # Tested modulations with associated PIB value and list of bandwidths in Kbits/sec
-modulations = {'FSK150': (8, [[5, 10, 15, 20, 25, 30, 35, 40, 50, 55, 60, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400]]),
-               'OFDM600': (46, [[5, 10, 15, 20, 25, 30, 35, 40, 50, 55, 60, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400]])}
+modulations = {'FSK150': (8, [5, 10, 15, 20, 25, 30, 35, 40, 50, 55, 60, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400]),
+               'OFDM600': (46, [5, 10, 15, 20, 25, 30, 35, 40, 50, 55, 60, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400])}
 
-modulations = {'OFDM600': (46, [ 400])}
+# modulations = {'OFDM600': (46, [150, 400])}
 
 for item in list(modulations.items()):
     modulation_name = item[0];
@@ -112,7 +112,7 @@ for item in list(modulations.items()):
                 if m is not None:
                     # print m.groups()[0]
                     goodputs[payload_len].append(float(m.groups()[0]))
-                    print str(payload_len)+"B->", goodputs[payload_len]
+                    print str(payload_len)+"B, " + bandwidth + "K->", goodputs[payload_len]
 
             # goodputs.sort()
 
@@ -133,7 +133,7 @@ for item in list(modulations.items()):
         writer = csv.writer(f, quoting=csv.QUOTE_NONE)
         writer.writerow(['Input Data Rate (Kbps)', 'Goodput (kbps) for different Packet Sizes', None, None, None])
         writer.writerow([None, '64B', '128B', '256B', '1024B'])
-        # rows = zip(goodputs[64], goodputs[128], goodputs[256], goodputs[1024])
-        rows = zip(modulation_bandwidths, goodputs[256], goodputs[1024])
+        rows = zip(modulation_bandwidths, goodputs[64], goodputs[128], goodputs[256], goodputs[1024])
+        # rows = zip(modulation_bandwidths, goodputs[256], goodputs[1024])
         for row in rows:
             writer.writerow(row)
