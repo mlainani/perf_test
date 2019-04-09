@@ -31,7 +31,7 @@ report_interval = '1'
 modulations = {'FSK150': (8, [5, 10, 15, 20, 25, 30, 35, 40, 50, 55, 60, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400]),
                'OFDM600': (46, [10, 15, 20, 25, 30, 35, 40, 50, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400])}
 
-modulations = {'OFDM600': (46, [150, 400])}
+modulations = {'OFDM600': (46, [ 400])}
 
 for item in list(modulations.items()):
     modulation_name = item[0];
@@ -80,7 +80,7 @@ for item in list(modulations.items()):
             # server = pexpect.spawn('screen ' + server_port + ' 115200', timeout=60)
             # server.sendline()
             server = pxssh.pxssh()
-            server.login(server_ip_addr, 'pi')
+            server.login(server_ip_addr, 'kong')
             # server.expect_exact('pi@raspberrypi:~$ ')
             server.prompt()
             server.sendline(iperf_server_cmd)
@@ -98,7 +98,7 @@ for item in list(modulations.items()):
                 print 'Client has finished\n'
                 client.kill(1)
 
-            time.sleep(20)
+            time.sleep(10)
 
             server.sendcontrol('c')
             server.sendcontrol('c')
@@ -133,7 +133,7 @@ for item in list(modulations.items()):
         writer = csv.writer(f, quoting=csv.QUOTE_NONE)
         writer.writerow(['Input Data Rate (Kbps)', 'Goodput (kbps) for different Packet Sizes', None, None, None])
         writer.writerow([None, '64B', '128B', '256B', '1024B'])
-        rows = zip(goodputs[64], goodputs[128], goodputs[256], goodputs[1024])
-        # rows = zip(goodputs[128], goodputs[256])
+        # rows = zip(goodputs[64], goodputs[128], goodputs[256], goodputs[1024])
+        rows = zip(modulation_bandwidths, goodputs[256], goodputs[1024])
         for row in rows:
             writer.writerow(row)
