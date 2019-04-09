@@ -7,23 +7,31 @@ import pexpect
 import re
 import time
 
-payload_lengths = [64, 128, 256, 1024]
-# payload_lengths = [128, 256]
+# payload_lengths = [64, 128, 256, 1024]
+payload_lengths = [256, 1024]
 
 # Dictionnary keys are the above payload lengths
 goodputs = {}
 
 # Serial ports for devices under test
-dut_ports = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+dut_ports = ['/dev/ttyUSB1', '/dev/ttyUSB2']
 
-# Serial port for server (RPi)
+# Serial port for server (RPi). Not necessary with ASIC
 server_port = '/dev/ttyUSB2'
+
+# Ip addr for server
+server_ip_addr = '10.0.30.2'
+
+# IPERF Settings
+client_ip_addr  = 'bbbb::1' # CLient IP Addr
+duration        = '5'
+report_interval = '1'
 
 # Tested modulations with associated PIB value and list of bandwidths in Kbits/sec
 modulations = {'FSK150': (8, [5, 10, 15, 20, 25, 30, 35, 40, 50, 55, 60, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400]),
                'OFDM600': (46, [10, 15, 20, 25, 30, 35, 40, 50, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400])}
 
-# modulations = {'OFDM600': (46, [20, 30])}
+modulations = {'OFDM600': (46, [150, 400])}
 
 for item in list(modulations.items()):
     modulation_name = item[0];
@@ -46,8 +54,8 @@ for item in list(modulations.items()):
         dut = pexpect.spawn('screen ' + port + ' 115200', timeout=60)
         dut.sendline()
         dut.expect_exact('# ')
-        # dut.sendline('pib -sn .rf_mac.static_config.pkt_mgr.forceTxModulation -v ' + str(modulation_pib_value))
-        dut.sendline('date > /root/foobar')
+        dut.sendline('pib -sn .rf_mac.static_config.pkt_mgr.forceTxModulation -v ' + str(modulation_pib_value))
+        # dut.sendline('date > /root/foobar')
         dut.expect_exact('# ')
 
         dut.sendcontrol('a')
@@ -63,7 +71,7 @@ for item in list(modulations.items()):
 
             iperf_server_cmd = 'iperf -s -u -V'
             # iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c 3333::1 -l ' + str(payload_len) + ' -t 10 -u -V'
-            iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c 3333::1 -l ' + str(payload_len) + ' -t 5 -u -V'
+            iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c ' + client_ip_addr + ' -l ' + str(payload_len) + ' -t ' + duration + ' -u -V'
 
             # print(iperf_server_cmd)
             print(iperf_client_cmd)
@@ -72,7 +80,7 @@ for item in list(modulations.items()):
             # server = pexpect.spawn('screen ' + server_port + ' 115200', timeout=60)
             # server.sendline()
             server = pxssh.pxssh()
-            server.login('192.168.2.2', 'pi')
+            server.login(server_ip_addr, 'pi')
             # server.expect_exact('pi@raspberrypi:~$ ')
             server.prompt()
             server.sendline(iperf_server_cmd)
