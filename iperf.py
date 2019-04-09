@@ -74,7 +74,9 @@ for item in list(modulations.items()):
             iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c ' + client_ip_addr + ' -l ' + str(payload_len) + ' -t ' + duration + ' -u -V'
 
             # print(iperf_server_cmd)
-            print(iperf_client_cmd)
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+            # print(datetime.now())
+            print str(datetime.now()), iperf_client_cmd
 
             # Start Iperf server
             # server = pexpect.spawn('screen ' + server_port + ' 115200', timeout=60)
@@ -82,6 +84,7 @@ for item in list(modulations.items()):
             server = pxssh.pxssh()
             server.login(server_ip_addr, 'kong')
             # server.expect_exact('pi@raspberrypi:~$ ')
+            server.sendline()
             server.prompt()
             server.sendline(iperf_server_cmd)
 
@@ -89,31 +92,36 @@ for item in list(modulations.items()):
 
             # Set command prompt to something more specific
             COMMAND_PROMPT = r"\[PEXPECT\]\$ "
-            client = pexpect.spawn('/bin/bash', timeout=60)
-            client.sendline (r"PS1='[PEXPECT]\$ '")
-            client.expect(COMMAND_PROMPT)
-            client.sendline(iperf_client_cmd)
-            ret = client.expect(COMMAND_PROMPT)
-            if ret == 0:
-                print 'Client has finished\n'
-                client.kill(1)
+            # client = pexpect.spawn('/bin/bash', timeout=60)
+            pexpect.run(iperf_client_cmd)
+            print str(datetime.now()), "Client Finished. Waiting for server to finish..."
+            # client.sendline (r"PS1='[PEXPECT]\$ '")
+            # client.expect(COMMAND_PROMPT)
+            # client.sendline(iperf_client_cmd)
+            # ret = client.expect(COMMAND_PROMPT)
+            # if ret == 0:
+            #     print str(datetime.now()), 'Client has finished\n'
+            #     client.kill(1)
 
-            time.sleep(10)
+            time.sleep(20)
 
             server.sendcontrol('c')
             server.sendcontrol('c')
-            server.prompt()
+            ret = server.prompt()
             # server.expect_exact('pi@raspberrypi:~$ ')
-            if ret == 0:
+            if ret == True:
+                print str(datetime.now()), "Server has finished"
                 lines = server.before.split('\n')
-            for line in lines:
-                print line
-                m = re.search(r'\s(\d+|\d+\.\d+)\sKbits/sec', line)
-                if m is not None:
-                    # print m.groups()[0]
-                    goodputs[payload_len].append(float(m.groups()[0]))
-                    print str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
-
+                for line in lines:                
+                    print str(datetime.now()), line
+                    m = re.search(r'\s(\d+|\d+\.\d+)\sKbits/sec', line)
+                    if m is not None:
+                        # print m.groups()[0]
+                        goodputs[payload_len].append(float(m.groups()[0]))
+                        print str(datetime.now()), str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
+            else:
+                print "Error while retrieving from server"
+                exit(-1)
             # goodputs.sort()
 
             # avg_goodput = round(sum(goodputs) / len(goodputs), 1)
