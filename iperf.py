@@ -112,7 +112,7 @@ for item in list(modulations.items()):
                 if m is not None:
                     # print m.groups()[0]
                     goodputs[payload_len].append(float(m.groups()[0]))
-                    print str(payload_len)+"B, " + bandwidth + "K->", goodputs[payload_len]
+                    print str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
 
             # goodputs.sort()
 
