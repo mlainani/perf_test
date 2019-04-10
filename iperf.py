@@ -26,7 +26,8 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
     
     print 'dual:', dual_test, modulation_name, server_addr, mgmt_addr, user_name
 
-    dual = ' -d' if dual_test else ''
+    dual_cmd_token = ' -d' if dual_test else ''
+    dual_filename_token = '_dual' if dual_test else ''
 
     modulation_pib_value = modulations[modulation_name][0];
     modulation_bandwidths = modulations[modulation_name][1];
@@ -55,7 +56,7 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
         for bandwidth in modulation_bandwidths:
 
             iperf_server_cmd = 'iperf -s -u -V'
-            iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c ' + server_addr + dual + ' -l ' + str(payload_len) + ' -t ' + duration + ' -u -V'
+            iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c ' + server_addr + dual_cmd_token + ' -l ' + str(payload_len) + ' -t ' + duration + ' -u -V'
 
             # print(iperf_server_cmd)
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
@@ -96,6 +97,7 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
                         print str(datetime.now()), modulation_name, str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
             else:
                 print "Error while retrieving from server"
+                server.logout
                 exit(-1)
 
             server.logout
@@ -103,7 +105,7 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
     # Create CSV file for the current modulation
     fmt = '%b%d-%H-%M'
     now = datetime.now()
-    csv_filename = modulation_name + '_' + now.strftime(fmt) + '.csv'
+    csv_filename = modulation_name + '_' + now.strftime(fmt) + dual_filename_token + '.csv'
     with open(csv_filename, 'w') as f:
         writer = csv.writer(f, quoting=csv.QUOTE_NONE)
         writer.writerow(['Input Data Rate (Kbps)', 'Goodput (kbps) for different Packet Sizes', None, None, None])
