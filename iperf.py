@@ -53,6 +53,7 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
 
     for payload_len in payload_lengths:
         goodputs[payload_len] = []
+        tmp_csv_filename = str(payload_len) + '_' + modulation_name + '_' + datetime.now().strftime('%b%d-%H-%M') + dual_filename_token + '.csv'
         for bandwidth in modulation_bandwidths:
 
             iperf_server_cmd = 'iperf -s -u -V'
@@ -93,6 +94,14 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
                         # print m.groups()[0]
                         goodputs[payload_len].append(float(m.groups()[0]))
                         print str(datetime.now()), str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
+                        with open(tmp_csv_filename) as f:
+                            writer = csv.writer(f, quoting=csv.QUOTE_NONE)
+                            writer.writerow(['Input Data Rate (Kbps)', 'Goodput (kbps) for ' + str(payload_len) + 'B packets'])
+                            writer.writerow([None, str(payload_len) + 'B'])
+                            rows = zip(modulation_bandwidths, goodputs[payload_len])
+                            for row in rows:
+                                writer.writerow(row)
+
             else:
                 print "Error while retrieving from server"
                 exit(-1)
