@@ -115,19 +115,6 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
 
             else:
                 print "Error while retrieving from server. Killing server process."
-                # pexpect.run('pkill -KILL iperf')
-                # # Placeholder for the value we didn't get is the last one (which could have been derived the same way...)
-                # goodputs[payload_len].append(goodputs[payload_len][-1])
-                # print str(datetime.now()), str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
-                # with open(tmp_csv_filename) as f:
-                #     writer = csv.writer(f, quoting=csv.QUOTE_NONE)
-                #     writer.writerow(['Input Data Rate (Kbps)', 'Goodput (kbps) for ' + str(payload_len) + 'B packets'])
-                #     writer.writerow([None, str(payload_len) + 'B'])
-                #     rows = zip(modulation_bandwidths, goodputs[payload_len])
-                #     for row in rows:
-                #         writer.writerow(row)
-
-                # print str(datetime.now()), modulation_name, str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
 
             server.logout
 
