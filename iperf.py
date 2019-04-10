@@ -2,53 +2,38 @@
 
 from datetime import datetime
 from pexpect import pxssh
+import argparse
 import csv
 import pexpect
 import re
+import sys
 import time
-
-payload_lengths = [64, 128, 256, 1024]
-# payload_lengths = [256, 1024]
-
-# Dictionnary keys are the above payload lengths
-goodputs = {}
-
-# Serial ports for devices under test
-dut_ports = ['/dev/ttyUSB1', '/dev/ttyUSB2']
-
-# Serial port for server (RPi). Not necessary with ASIC
-server_port = '/dev/ttyUSB2'
-
-# Ip addr for server
-server_ip_addr = '10.0.30.2'
-
-# IPERF Settings
-client_ip_addr  = 'bbbb::1' # CLient IP Addr
-duration        = '5'
-report_interval = '1'
 
 # Tested modulations with associated PIB value and list of bandwidths in Kbits/sec
 modulations = {'FSK150': (8, [5, 10, 15, 20, 25, 30, 35, 40, 50, 55, 60, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400]),
                'OFDM600': (46, [5, 10, 15, 20, 25, 30, 35, 40, 50, 55, 60, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400])}
 
-# modulations = {'OFDM600': (46, [150, 400])}
+payload_lengths = [64, 128, 256, 1024]
 
-for item in list(modulations.items()):
-    modulation_name = item[0];
-    modulation_pib_value = item[1][0];
-    modulation_bandwidths = item[1][1]
+# Serial ports for devices under test
+dut_ports = ['/dev/ttyUSB1', '/dev/ttyUSB2']
 
-    print(modulation_name)
-    print(modulation_pib_value)
-    print(modulation_bandwidths)
+duration = '5'
 
-    # cmd  = 'pib -sn .rf_mac.static_config.pkt_mgr.forceTxModulation -v ' + str(modulation_pib_value)
-
-    # print(cmd)
-
-    # continue
-    # exit(0)
+def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
+    # Dictionnary keys will be the different payload lengths
+    goodputs = {}
     
+    print 'dual:', dual_test, modulation_name, server_addr, mgmt_addr, user_name
+
+    dual = ' -d' if dual_test else ''
+
+    modulation_pib_value = modulations[modulation_name][0];
+    modulation_bandwidths = modulations[modulation_name][1];
+
+    print 'PIB value:', modulation_pib_value
+    print 'Bandwidths:', modulation_bandwidths
+
     for port in dut_ports:
         # Connect to the Device Under Test and set RF modulation
         dut = pexpect.spawn('screen ' + port + ' 115200', timeout=60)
@@ -63,52 +48,40 @@ for item in list(modulations.items()):
         dut.send('y')
         dut.kill(1)
 
-        print('Set RF modulation to ' +  item[0] + ' for DUT on serial port ' + port)
+        print 'Set RF modulation to', modulation_name, 'for DUT on serial port', port
 
     for payload_len in payload_lengths:
         goodputs[payload_len] = []
         for bandwidth in modulation_bandwidths:
 
             iperf_server_cmd = 'iperf -s -u -V'
-            # iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c 3333::1 -l ' + str(payload_len) + ' -t 10 -u -V'
-            iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c ' + client_ip_addr + ' -l ' + str(payload_len) + ' -t ' + duration + ' -u -V'
+            iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c ' + server_addr + dual + ' -l ' + str(payload_len) + ' -t ' + duration + ' -u -V'
 
             # print(iperf_server_cmd)
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             # print(datetime.now())
             print str(datetime.now()), iperf_client_cmd
 
-            # Start Iperf server
-            # server = pexpect.spawn('screen ' + server_port + ' 115200', timeout=60)
-            # server.sendline()
+            # Start iPerf server
             server = pxssh.pxssh()
-            server.login(server_ip_addr, 'kong')
-            # server.expect_exact('pi@raspberrypi:~$ ')
+            server.login(mgmt_addr, user_name)
             server.sendline()
             server.prompt()
             server.sendline(iperf_server_cmd)
 
-            # Start Iperf client and wait for it to finish
-
-            # Set command prompt to something more specific
-            COMMAND_PROMPT = r"\[PEXPECT\]\$ "
-            # client = pexpect.spawn('/bin/bash', timeout=60)
+            # Start iPerf client and wait for it to finish
             pexpect.run(iperf_client_cmd)
             print str(datetime.now()), "Client Finished. Waiting for server to finish..."
-            # client.sendline (r"PS1='[PEXPECT]\$ '")
-            # client.expect(COMMAND_PROMPT)
-            # client.sendline(iperf_client_cmd)
-            # ret = client.expect(COMMAND_PROMPT)
-            # if ret == 0:
-            #     print str(datetime.now()), 'Client has finished\n'
-            #     client.kill(1)
 
+            # iPerf2 doesn't have the one-off option found in iPerf3 that makes
+            # the server return after it's done receiving packets. We need to
+            # wait sufficient time before killing the server process. This
+            # 'sufficient time' was determined empirically.
             time.sleep(20)
 
             server.sendcontrol('c')
             server.sendcontrol('c')
             ret = server.prompt()
-            # server.expect_exact('pi@raspberrypi:~$ ')
             if ret == True:
                 print str(datetime.now()), "Server has finished"
                 lines = server.before.split('\n')
@@ -122,16 +95,8 @@ for item in list(modulations.items()):
             else:
                 print "Error while retrieving from server"
                 exit(-1)
-            # goodputs.sort()
-
-            # avg_goodput = round(sum(goodputs) / len(goodputs), 1)
-            # print avg_goodput
 
             server.logout
-            # server.sendcontrol('a')
-            # server.send('k')
-            # server.send('y')
-            # server.kill(1)
 
     # Create CSV file for the current modulation
     fmt = '%b%d-%H-%M'
@@ -145,3 +110,48 @@ for item in list(modulations.items()):
         # rows = zip(modulation_bandwidths, goodputs[256], goodputs[1024])
         for row in rows:
             writer.writerow(row)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description='''
+
+DESCRIPTION:
+
+The script will create a CSV file in the current directory to collect
+the goodput measurements for the given modulation for a predefined
+list of target bandwidths.
+
+EXAMPLES:
+
+  ./iperf.py -m ofdm600 -s 3333::1 -t 192.168.2.2 -u kong
+
+  ./iperf.py -d -m fsk150 -s 3333::1 -t 192.168.2.2 -u kong
+
+
+LIMITATIONS:
+
+Only FSK150 and OFDM600 RF modulations are supported
+
+'''
+    )
+
+    parser.add_argument('-d', '--dualtest', action='store_true', help='do a bidirectional test simultaneously')
+    parser.add_argument('-m', '--modulation', required=True, help='RF modulation used in the ACT network; used to form results CSV file name')
+    parser.add_argument('-s', '--serveraddr', required=True, help='iPerf server IPv6 address')
+    parser.add_argument('-t', '--mgmtaddr', required=True, help='iPerf server IPv4 address to use for the SSH management connection')
+    parser.add_argument('-u', '--username', required=True, help='user name for the server management SSH connection')
+
+    args = parser.parse_args()
+
+    dual_test = args.dualtest
+    modulation = args.modulation.upper()
+    server_addr = args.serveraddr
+    mgmt_addr = args.mgmtaddr
+    user_name = args.username
+
+    if modulation not in modulations:
+        print args.modulation, 'is not a supported modulation'
+        sys.exit(1)
+
+    run_test(dual_test, modulation, server_addr, mgmt_addr, user_name)
