@@ -83,37 +83,26 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
             # 'sufficient time' was determined empirically.
             time.sleep(20)
 
-            server.sendcontrol('c')
-            server.sendcontrol('c')
+            # server.sendcontrol('c')
+            server.sendcontrol('z')
+            server.sendline()
             ret = server.prompt()
+
             if ret == True:
                 print str(datetime.now()), "Server has finished"
                 lines = server.before.split('\n')
                 for line in lines:                
                     print str(datetime.now()), line
-                    m = re.search(r'\s(\d+|\d+\.\d+)\sKbits/sec', line)
+                    m = re.search(r'\s(\d+|\d+\.\d+)\sKbits/sec', line)                    
                     if m is not None:
                         # print m.groups()[0]
                         goodputs[payload_len].append(float(m.groups()[0]))
-
-                        print str(datetime.now()), str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
-                        with open(tmp_csv_filename) as f:
-                            writer = csv.writer(f, quoting=csv.QUOTE_NONE)
-                            writer.writerow(['Input Data Rate (Kbps)', 'Goodput (kbps) for ' + str(payload_len) + 'B packets'])
-                            writer.writerow([None, str(payload_len) + 'B'])
-                            rows = zip(modulation_bandwidths, goodputs[payload_len])
-                            for row in rows:
-                                writer.writerow(row)
-
-                        print str(datetime.now()), modulation_name, str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
-
-            else:
-                print "Error while retrieving from server. Killing server process."
-                pexpect.run('pkill -KILL iperf')
-                # Placeholder for the value we didn't get is the last one (which could have been derived the same way...)
-                goodputs[payload_len].append(goodputs[payload_len][-1])
-                print str(datetime.now()), str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
-                with open(tmp_csv_filename) as f:
+                        break
+                # if nothing is found, append an empty slot
+                if m is None:
+                    goodputs[payload_len].append("")
+                    
+                with open(tmp_csv_filename, 'w') as f:
                     writer = csv.writer(f, quoting=csv.QUOTE_NONE)
                     writer.writerow(['Input Data Rate (Kbps)', 'Goodput (kbps) for ' + str(payload_len) + 'B packets'])
                     writer.writerow([None, str(payload_len) + 'B'])
@@ -122,6 +111,23 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
                         writer.writerow(row)
 
                 print str(datetime.now()), modulation_name, str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
+                server.sendline('pkill -KILL iperf')                
+
+            else:
+                print "Error while retrieving from server. Killing server process."
+                # pexpect.run('pkill -KILL iperf')
+                # # Placeholder for the value we didn't get is the last one (which could have been derived the same way...)
+                # goodputs[payload_len].append(goodputs[payload_len][-1])
+                # print str(datetime.now()), str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
+                # with open(tmp_csv_filename) as f:
+                #     writer = csv.writer(f, quoting=csv.QUOTE_NONE)
+                #     writer.writerow(['Input Data Rate (Kbps)', 'Goodput (kbps) for ' + str(payload_len) + 'B packets'])
+                #     writer.writerow([None, str(payload_len) + 'B'])
+                #     rows = zip(modulation_bandwidths, goodputs[payload_len])
+                #     for row in rows:
+                #         writer.writerow(row)
+
+                # print str(datetime.now()), modulation_name, str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
 
             server.logout
 
