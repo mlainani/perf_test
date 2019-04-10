@@ -10,8 +10,8 @@ import sys
 import time
 
 # Tested modulations with associated PIB value and list of bandwidths in Kbits/sec
-modulations = {'FSK150': (8, [5, 10, 15, 20, 25, 30, 35, 40, 50, 55, 60, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400]),
-               'OFDM600': (46, [5, 10, 15, 20, 25, 30, 35, 40, 50, 55, 60, 65, 70, 75, 100, 120, 125, 130, 150, 275, 295, 300, 310, 325, 350, 400])}
+modulations = {'FSK150': (8, [10, 25, 50, 75, 100, 125, 150, 250, 300, 400]),
+               'OFDM600': (46, [10, 25, 50, 75, 100, 125, 150, 250, 300, 400])}
 
 payload_lengths = [64, 128, 256, 1024]
 
@@ -62,7 +62,7 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
             # print(iperf_server_cmd)
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             # print(datetime.now())
-            print str(datetime.now()), iperf_client_cmd
+            print str(datetime.now()), iperf_server_cmd
 
             # Start iPerf server
             server = pxssh.pxssh()
@@ -70,8 +70,10 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
             server.sendline()
             server.prompt()
             server.sendline(iperf_server_cmd)
+            print str(datetime.now()), "Server started"            
 
             # Start iPerf client and wait for it to finish
+            print str(datetime.now()), iperf_client_cmd
             pexpect.run(iperf_client_cmd)
             print str(datetime.now()), "Client Finished. Waiting for server to finish..."
 
@@ -93,6 +95,7 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
                     if m is not None:
                         # print m.groups()[0]
                         goodputs[payload_len].append(float(m.groups()[0]))
+
                         print str(datetime.now()), str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
                         with open(tmp_csv_filename) as f:
                             writer = csv.writer(f, quoting=csv.QUOTE_NONE)
@@ -102,8 +105,11 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
                             for row in rows:
                                 writer.writerow(row)
 
+                        print str(datetime.now()), modulation_name, str(payload_len)+"B, " + str(bandwidth) + "K->", goodputs[payload_len]
+
             else:
                 print "Error while retrieving from server"
+                server.logout
                 exit(-1)
 
             server.logout
