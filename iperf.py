@@ -16,7 +16,7 @@ modulations = {'FSK150': (8, [10, 25, 50, 75, 100, 125, 150, 250, 300, 400]),
 payload_lengths = [64, 128, 256, 1024]
 
 # Serial ports for devices under test
-dut_ports = ['/dev/ttyUSB1', '/dev/ttyUSB2']
+dut_ports = ['/dev/ttyUSB0', '/dev/ttyUSB2']
 
 duration = '5'
 
@@ -94,7 +94,7 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
                 for line in lines:                
                     print str(datetime.now()), line
                     m = re.search(r'\s(\d+|\d+\.\d+)\sKbits/sec', line)                    
-                    if m is not None:
+                    if ( m is not None ) and ( len(line.split('/')) > 2 ):
                         # print m.groups()[0]
                         goodputs[payload_len].append(float(m.groups()[0]))
                         break
