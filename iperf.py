@@ -10,13 +10,13 @@ import sys
 import time
 
 # Tested modulations with associated PIB value and list of bandwidths in Kbits/sec
-modulations = {'FSK150': (8, [10, 25, 50, 75, 100, 125, 150, 250, 300, 400]),
-               'OFDM600': (46, [10, 25, 50, 75, 100, 125, 150, 250, 300, 400])}
+modulations = {'FSK150': (8, [5, 15, 20, 25, 35, 40, 45, 55, 60, 65, 75, 150]),
+               'OFDM600': (46, [5, 35, 40, 60, 65, 120, 125, 295, 300, 310, 400, 600 ])}
 
 payload_lengths = [64, 128, 256, 1024]
 
 # Serial ports for devices under test
-dut_ports = ['/dev/ttyUSB0', '/dev/ttyUSB2']
+dut_ports = ['/dev/ttyUSB0', '/dev/ttyUSB1']
 
 duration = '5'
 
@@ -130,6 +130,22 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
         # rows = zip(modulation_bandwidths, goodputs[256], goodputs[1024])
         for row in rows:
             writer.writerow(row)
+
+    for port in dut_ports:
+        # Connect to the Device Under Test and set RF modulation
+        dut = pexpect.spawn('screen ' + port + ' 115200', timeout=60)
+        dut.sendline()
+        dut.expect_exact('# ')
+        dut.sendline('pib -sn .mas.status.f0_core.TxTimeTable1hRf -v 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000')
+        # dut.sendline('date > /root/foobar')
+        dut.expect_exact('# ')
+
+        dut.sendcontrol('a')
+        dut.send('k')
+        dut.send('y')
+        dut.kill(1)
+
+        print 'TX time Accumulated on RF is RESET for DUT on serial port', port
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
