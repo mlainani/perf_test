@@ -6,6 +6,7 @@ import argparse
 import csv
 import pexpect
 import re
+import subprocess
 import sys
 import time
 
@@ -35,6 +36,8 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
     print 'PIB value:', modulation_pib_value
     print 'Bandwidths:', modulation_bandwidths
 
+    ping6_cmd = 'ping6 -c 1 -s 8 -W 3 ' + server_addr
+
     for port in dut_ports:
         # Connect to the Device Under Test and set RF modulation
         dut = pexpect.spawn('screen ' + port + ' 115200', timeout=60)
@@ -55,6 +58,11 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
         goodputs[payload_len] = []
         tmp_csv_filename = str(payload_len) + '_' + modulation_name + '_' + datetime.now().strftime('%b%d-%H-%M') + dual_filename_token + '.csv'
         for bandwidth in modulation_bandwidths:
+            # Test server reachability
+            ret = subprocess.call(ping6_cmd, shell=True)
+            if (ret != 0):
+                print 'iPerf server is unreachable: aborting test'
+                sys.exit(1)
 
             iperf_server_cmd = 'iperf -s -u -V'
             iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c ' + server_addr + dual_cmd_token + ' -l ' + str(payload_len) + ' -t ' + duration + ' -u -V'
