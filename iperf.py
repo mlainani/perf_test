@@ -58,12 +58,14 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
         goodputs[payload_len] = []
         tmp_csv_filename = str(payload_len) + '_' + modulation_name + '_' + datetime.now().strftime('%b%d-%H-%M') + dual_filename_token + '.csv'
         for bandwidth in modulation_bandwidths:
-            # Test server reachability
-            ret = subprocess.call(ping6_cmd, shell=True)
-            if (ret != 0):
-                print 'iPerf server is unreachable: aborting test'
-                sys.exit(1)
-            print str(datetime.now()), "Server Reachable"            
+            # Server reachability test loop
+            print str(datetime.now()), 'Entering server reachability test loop...'
+            while True:
+                ret = subprocess.call(ping6_cmd, shell=True, stdout=open("/dev/null", 'w'), stderr=open("/dev/null", 'w'))
+                if (ret == 0):
+                    print str(datetime.now()), 'iPerf server is reachable: proceeding with test'
+                    break
+
             iperf_server_cmd = 'iperf -s -u -V'
             iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c ' + server_addr + dual_cmd_token + ' -l ' + str(payload_len) + ' -t ' + duration + ' -u -V'
 
