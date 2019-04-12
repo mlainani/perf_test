@@ -36,7 +36,7 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
     print 'PIB value:', modulation_pib_value
     print 'Bandwidths:', modulation_bandwidths
 
-    ping6_cmd = 'ping6 -c 1 -s 8 -W 3 ' + server_addr
+    ping6_cmd = 'ping6 -c 1 -s 8 -W 10 ' + server_addr
 
     for port in dut_ports:
         # Connect to the Device Under Test and set RF modulation
