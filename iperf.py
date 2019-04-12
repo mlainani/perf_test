@@ -63,7 +63,7 @@ def run_test(dual_test, modulation_name, server_addr, mgmt_addr, user_name):
             if (ret != 0):
                 print 'iPerf server is unreachable: aborting test'
                 sys.exit(1)
-
+            print str(datetime.now()), "Server Reachable"            
             iperf_server_cmd = 'iperf -s -u -V'
             iperf_client_cmd = 'iperf -b ' + str(bandwidth) + 'K -c ' + server_addr + dual_cmd_token + ' -l ' + str(payload_len) + ' -t ' + duration + ' -u -V'
 
