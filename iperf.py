@@ -164,9 +164,20 @@ if __name__ == "__main__":
 
 DESCRIPTION:
 
-The script will create a CSV file in the current directory to collect
-the goodput measurements for the given modulation for a predefined
-list of target bandwidths.
+This script will perform a series of UDP goodput measurements for a
+user-selected RF modulation for combination of varying payload lengths
+and target bandwidths. The list of payload lengths and the the one of
+target bandwidths are both hardcoded.
+
+The script will interact with the local host, acting as the iPerf
+client, and a remote host acting as the server. The remote host is
+accessed using SSH. This script will also interact with the two
+devices under test using a serial port connection. The list of serial
+ports is hardcoded.
+
+The results for the measurements are written to a CSV file created in
+the current directory. File name starts with the selected modulation
+name in uppercase.
 
 EXAMPLES:
 
@@ -174,10 +185,18 @@ EXAMPLES:
 
   ./iperf.py -d -m fsk150 -s 3333::1 -t 192.168.2.2 -u kong
 
+DEPENDENCIES:
+
+This script relies on the Pexpect Python module for automating
+interaction with the Iperf client and server as well as with the
+devices under test.
+
+It also relies on the GNU Screen terminal multiplexer to access the
+Linux console of the devices under test.
 
 LIMITATIONS:
 
-Only FSK150 and OFDM600 RF modulations are supported
+Only FSK150 and OFDM600 RF modulations are supported.
 
 '''
     )
@@ -195,6 +214,21 @@ Only FSK150 and OFDM600 RF modulations are supported
     server_addr = args.serveraddr
     mgmt_addr = args.mgmtaddr
     user_name = args.username
+
+    # Check that GNU Screen is installed
+    if pexpect.which('screen') == None:
+        print "Please install GNU Screen with e.g. 'sudo apt install screen'"
+        sys.exit(1)
+
+    # Check that serial ports are valid and usable
+    for port in dut_ports:
+        cmd = "stty -F " + port + ' speed'
+        p = subprocess.Popen(cmd, shell=True, stderr=open("/dev/null", 'w'), stdout=open("/dev/null", 'w'))
+        while p.poll() is None:
+            continue
+        if (p.returncode != 0):
+            print port, 'is not a valid serial port or is already in use'
+            sys.exit(1)
 
     if modulation not in modulations:
         print args.modulation, 'is not a supported modulation'
